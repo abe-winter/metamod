@@ -1,0 +1,12 @@
+cache:
+    paths:
+        - env2
+        - env3
+
+test2:
+    script:
+        - virtualenv env2 --system-site-packages && source env2/bin/activate
+        - pip install pytest
+        - cd metamod && pip install -e .
+        - cd ..
+        - py.test metamod/test
