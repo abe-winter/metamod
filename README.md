@@ -1,11 +1,16 @@
 ## metamod package (python)
 
+- [overview](#overview)
+- [vs other ORMs](#vs-other-orms)
+- [example](#example)
+- [roadmap](#roadmap)
+
 ### overview
 
 metamod stands for 'metaclass models'.
 
 * lightweight ORM (about 200 lines)
-* uses python's `__slots__` so instances are lightweight and self-documenting
+* uses python's `__slots__` so instances are lightweight and classes are self-documenting
 
 ### vs other ORMs
 
@@ -13,8 +18,6 @@ The goal here is to be a thin layer on SQL. We want to wrap simple, well-underst
 * create table
 * insert
 * simple select statements (where field=value)
-
-But we *don't* want to do anything complicated for you. The theory is that people use an ORM for the simplest pieces of SQL and use SQL for the rest; otherwise you end up in a situation where you need to understand SQL, python & the ORM to get anything done (not cool).
 
 Database writes are emitted as raw SQL that you can pass to a cursor. Database reads operate on a cursor (but *not* on a connection; you manage your connections yourself).
 
@@ -69,4 +72,4 @@ assert models[0].a == 1
 
 * support null constraints and relations (i.e. foreign keys), use that to support factories in test
 * pylint plugin for static-checking DB field use
-* delta against existing DDL for migrations
+* delta against existing DDL for migrations? (maybe)
