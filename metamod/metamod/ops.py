@@ -44,17 +44,28 @@ def pkey(rowclass, values):
         raise ValueError('length mismatch', rowclass.PKEY, values)
     return dict(zip(rowclass.PKEY, values))
 
+def itermodels(cursor, rowclass):
+    "assuming the cursor is primed with 'select *', iterate rowclass objects"
+    for row_ in cursor:
+        yield rowclass(*row_)
+
+class ColumnSpec:
+    "this is used for unpacking columns from multi-table queries"
+    def __init__(self, *pairs):
+        "pairs is list of tuples like (model_class, column_name). support * probably"
+        raise NotImplementedError
+
+    def itermodels(self, cursor):
+        raise NotImplementedError
+
 def select_models(cursor, rowclass, where, **kwargs):
     if 'fields' in kwargs and kwargs['fields'] != ('*',):
         raise ValueError("don't pass fields into select_models()", kwargs['fields'])
     cursor.execute(*select_eq(rowclass, where, **kwargs))
-    return [
-        rowclass(*vals)
-        for vals in cursor
-    ]
+    return list(itermodels(cursor, rowclass))
 
 def get(cursor, rowclass, pkey_vals, **kwargs):
-    "get by primary key. return "
+    "get by primary key. return list of models (should have len 0 or 1)"
     return select_models(cursor, rowclass, pkey(rowclass, pkey_vals), **kwargs)
 
 TYPES = {
