@@ -3,6 +3,8 @@
 import collections
 from . import row
 
+WILDCARD = '%s'
+
 class UnkFieldError(row.MetamodError):
     def __init__(self, rowclass, field):
         self.rowclass = rowclass
@@ -52,7 +54,7 @@ class ColumnSpec:
         for row_ in cursor:
             yield self.readrow(row_)
 
-def insert(row_, returning=None, rawfields={}):
+def insert(row_, returning=None, rawfields={}, wildcard=WILDCARD):
     "returning is a string of valid SQL. raw is for fields that should not be escaped (i.e. SQL expressions)"
     fields = collections.OrderedDict(
         (name, getattr(row_, name))
@@ -63,7 +65,7 @@ def insert(row_, returning=None, rawfields={}):
         row_.__table__(),
         ','.join(fields),
         ','.join(
-            v if k in rawfields else '%s'
+            v if k in rawfields else wildcard
             for k,v in fields.items()
         )
     )
@@ -71,14 +73,14 @@ def insert(row_, returning=None, rawfields={}):
         stmt += ' returning %s' % ','.join(returning)
     return stmt, [v for k,v in fields.items() if k not in rawfields]
 
-def whereclause(where):
-    return ' where %s' % ' and '.join('%s=%%s' % k for k in where)
+def whereclause(where, wildcard):
+    return ' where %s' % ' and '.join('%s=%s' % (k, wildcard) for k in where)
 
-def select_eq(rowclass, where, fields=('*',), for_update=False, limit=None, order=None):
+def select_eq(rowclass, where, fields=('*',), for_update=False, limit=None, order=None, wildcard=WILDCARD):
     "simple select where all where clauses are ==. for more complicated selects, build them yourself"
     stmt = 'select %s from %s' % (','.join(fields), rowclass.__table__())
     if where:
-        stmt += whereclause(where)
+        stmt += whereclause(where, wildcard)
     if order is not None:
         stmt += 'order by %s' % order
     if limit is not None:
@@ -155,9 +157,9 @@ def init_db(schema):
     "returns list of statements that will init the DB"
     return sum(map(create_table, schema.values()), ())
 
-def update_eq(rowclass, where, update):
+def update_eq(rowclass, where, update, wildcard=WILDCARD):
     "simple updates where WHERE clauses are = and SETs are value-based (i.e. their values get escaped, can't be SQL exprs)"
     stmt = 'update %s set %s' % (rowclass.__table__(), ','.join('%s=%%s' % k for k in update))
     if where:
-        stmt += whereclause(where)
+        stmt += whereclause(where, wildcard)
     return stmt, (update.values() + where.values())
