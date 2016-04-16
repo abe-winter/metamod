@@ -3,8 +3,9 @@
 import re, six
 from . import stmt
 
-class DuplicateTableError(StandardError): pass
-class NArgsError(StandardError): pass
+class MetamodError(Exception): "base"
+class DuplicateTableError(MetamodError): pass
+class NArgsError(MetamodError): pass
 
 class Missing:
     "empty class for distinguishing 'missing' from intentional null"
@@ -81,6 +82,9 @@ class RowBase(object):
 
     def __pkey__(self):
         return tuple(getattr(self, field) for field in self.PKEY)
+
+    def __eq__(self, other):
+        return type(self) is type(other) and all(getattr(self, attr) == getattr(other, attr) for attr in self.__slots__)
 
     def __repr__(self):
         return '<%s %s>' % (

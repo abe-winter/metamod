@@ -45,3 +45,7 @@ def test_dupe_schema(ABRow):
     class ABRow(row.RowBase):
       FIELDS = []
       SCHEMA = ABRow.SCHEMA
+
+def test_eq(ABRow):
+  assert ABRow('a', 'b') == ABRow('a', 'b')
+  assert ABRow('a', 'b') != ABRow('a', 'b2')

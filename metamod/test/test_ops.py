@@ -54,3 +54,11 @@ def test_update(ABRow):
     'update a_b_row set b=%s where a=%s',
     [5, 3]
   )
+
+def test_columnspec(ABRow):
+  class Row2(row.RowBase):
+    FIELDS = ('x', int), ('y', int)
+    SCHEMA = None
+  CS = ops.ColumnSpec((ABRow, 'a'), (Row2, '*'), None)
+  rows = [('a', 'x', 'y', 'skip')]
+  assert list(CS.itermodels(rows)) == [[ABRow('a', row.Missing), Row2('x', 'y')]]

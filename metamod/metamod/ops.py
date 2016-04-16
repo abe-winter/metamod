@@ -3,6 +3,55 @@
 import collections
 from . import row
 
+class UnkFieldError(row.MetamodError):
+    def __init__(self, rowclass, field):
+        self.rowclass = rowclass
+        self.field = field
+
+    def __repr__(self):
+        return '<%s %s %s>' % (self.__class__.__name__, rowclass, field)
+
+class ColumnSpec:
+    "this is used for unpacking columns from multi-table queries"
+    def __init__(self, *pairs):
+        """pairs is list of tuples like (model_class, column_name).
+        supports *.
+        None instead of a pair means skip that field.
+        """
+        self.pairs = []
+        for pair in pairs:
+            if pair is None: # none means skip
+                self.pairs.append(None)
+                continue
+            rowclass, name = pair
+            if name == '*':
+                self.pairs.extend((rowclass, field.name) for field in rowclass.FIELDS)
+            elif name in rowclass.__slots__:
+                self.pairs.append(pair)
+            else:
+                raise UnkFieldError(rowclass, name)
+        
+        self.classes = collections.defaultdict(list)
+        class_order = collections.OrderedDict()
+        for i, pair in enumerate(self.pairs):
+            if pair is None:
+                continue
+            rowclass, field = pair
+            class_order[rowclass] = True
+            self.classes[rowclass].append((field, i))
+        self.class_order = class_order.keys()
+
+    def readrow(self, row_):
+        return [
+            # warning: this has to be slow. maybe save slot index instead of slot name
+            rowclass(**{field: row_[i] for field, i in self.classes[rowclass]})
+            for rowclass in self.class_order
+        ]
+
+    def itermodels(self, cursor):
+        for row_ in cursor:
+            yield self.readrow(row_)
+
 def insert(row_, returning=None, rawfields={}):
     "returning is a string of valid SQL. raw is for fields that should not be escaped (i.e. SQL expressions)"
     fields = collections.OrderedDict(
@@ -48,15 +97,6 @@ def itermodels(cursor, rowclass):
     "assuming the cursor is primed with 'select *', iterate rowclass objects"
     for row_ in cursor:
         yield rowclass(*row_)
-
-class ColumnSpec:
-    "this is used for unpacking columns from multi-table queries"
-    def __init__(self, *pairs):
-        "pairs is list of tuples like (model_class, column_name). support * probably"
-        raise NotImplementedError
-
-    def itermodels(self, cursor):
-        raise NotImplementedError
 
 def select_models(cursor, rowclass, where, **kwargs):
     if 'fields' in kwargs and kwargs['fields'] != ('*',):
