@@ -1,3 +1,4 @@
+from __future__ import print_function
 import six, pytest
 from metamod import row
 
@@ -31,7 +32,7 @@ def ACRow(SCHEMA):
 def test_field_attrs(ABRow):
   r = ABRow(1,2)
   assert r.a == 1 and r.b == 2
-  print r.__slots__
+  print(r.__slots__)
   with pytest.raises(AttributeError):
     r.c = 10
 

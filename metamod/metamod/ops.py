@@ -1,6 +1,6 @@
 "ops.py -- commands on tables"
 
-import collections
+import collections, six
 from . import row
 
 WILDCARD = '%s'
@@ -74,12 +74,18 @@ def insert(row_, returning=None, rawfields={}, wildcard=WILDCARD):
     return stmt, [v for k,v in fields.items() if k not in rawfields]
 
 def whereclause(where, wildcard):
+    assert isinstance(where, collections.OrderedDict)
     return ' where %s' % ' and '.join('%s=%s' % (k, wildcard) for k in where)
+
+def sortdict(d):
+    "this is silly and ignorant but it fixes tests on py3"
+    return d if isinstance(d, collections.OrderedDict) else collections.OrderedDict(sorted(d.items()))
 
 def select_eq(rowclass, where, fields=('*',), for_update=False, limit=None, order=None, wildcard=WILDCARD):
     "simple select where all where clauses are ==. for more complicated selects, build them yourself"
     stmt = 'select %s from %s' % (','.join(fields), rowclass.__table__())
     if where:
+        where = sortdict(where)
         stmt += whereclause(where, wildcard)
     if order is not None:
         stmt += 'order by %s' % order
@@ -87,7 +93,7 @@ def select_eq(rowclass, where, fields=('*',), for_update=False, limit=None, orde
         stmt += ' limit %i' % limit
     if for_update:
         stmt += ' for update'
-    return stmt, where.values()
+    return stmt, list(where.values())
 
 def join(rowclasses, where, wildcard=WILDCARD):
     "generate a simple join for rowclasses that have the same PKEY"
@@ -96,8 +102,9 @@ def join(rowclasses, where, wildcard=WILDCARD):
     stmt = "select %s from %s " % (','.join('%s.*' % class_.__table__() for class_ in rowclasses), rowclasses[0].__table__())
     stmt += ' '.join('join %s using %s' % (class_.__table__(), '(%s)' % ','.join(class_.PKEY)) for class_ in rowclasses[1:])
     if where:
+        where = sortdict(where)
         stmt += whereclause(where, wildcard)
-    return stmt, where.values()
+    return stmt, list(where.values())
 
 def pkey(rowclass, values):
     "return a where-dict for the rowclass given values"
@@ -137,8 +144,8 @@ def get(cursor, rowclass, pkey_vals, **kwargs):
 
 TYPES = {
     int: 'int',
-    str: 'text',
-    unicode: 'text',
+    six.binary_type: 'text', # warning: on py3, user wants bytea. on py2 who knows.
+    six.text_type: 'text',
     float: 'float',
     list: 'array',
 }
@@ -149,7 +156,7 @@ def enum_name(rowclass, field):
 def field_string(rowclass, field):
     return '%s %s' % (
         field.name,
-        field.type if isinstance(field.type, basestring)
+        field.type if isinstance(field.type, six.string_types)
             else enum_name(rowclass, field) if isinstance(field.type, set)
             else TYPES[field.type]
     )
@@ -186,5 +193,6 @@ def update_eq(rowclass, where, update, wildcard=WILDCARD):
     "simple updates where WHERE clauses are = and SETs are value-based (i.e. their values get escaped, can't be SQL exprs)"
     stmt = 'update %s set %s' % (rowclass.__table__(), ','.join('%s=%%s' % k for k in update))
     if where:
+        where = sortdict(where)
         stmt += whereclause(where, wildcard)
-    return stmt, (update.values() + where.values())
+    return stmt, (list(update.values()) + list(where.values()))

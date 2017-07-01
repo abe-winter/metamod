@@ -2,14 +2,16 @@
 sqlbuilder may also do this, in which case switch over.
 """
 
+import six
+
 def render(field_or_string):
-    return field_or_string if isinstance(field_or_string, basestring) else field_or_string.render()
+    return field_or_string if isinstance(field_or_string, six.string_types) else field_or_string.render()
 
 class Delim:
     "top-level joiner. a more advanced version of this could have sorting rules"
     def __init__(self, delim):
         self.delim = delim
-  
+
     def join(self, *fields):
         return self.delim.join(filter(None, map(render, fields)))
 
