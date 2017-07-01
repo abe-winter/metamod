@@ -2,7 +2,7 @@ import setuptools
 
 ARGS = dict(
     name='metamod',
-    version='0.0.2',
+    version='0.0.3',
     description='ORM that uses __slots__ (for memory saving), plain DBAPI2 connections (to not break threading) and assumes the user knows SQL',
     author='Abe Winter',
     author_email='awinter.public@gmail.com',
