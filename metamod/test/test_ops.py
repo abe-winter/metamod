@@ -1,6 +1,6 @@
 import six
 from metamod import ops, row
-from test_row import ABRow, SCHEMA
+from test_row import ABRow, ACRow, SCHEMA
 
 def test_insert(ABRow):
   row = ABRow(1,3)
@@ -62,3 +62,8 @@ def test_columnspec(ABRow):
   CS = ops.ColumnSpec((ABRow, 'a'), (Row2, '*'), None)
   rows = [('a', 'x', 'y', 'skip')]
   assert list(CS.itermodels(rows)) == [[ABRow('a', row.Missing), Row2('x', 'y')]]
+
+def test_join(ABRow, ACRow):
+    # todo: test non-identical pkey rejection
+    assert ops.join((ABRow, ACRow), {'a':1}) == \
+        ('select a_b_row.*,a_c_row.* from a_b_row join a_c_row using (a) where a=%s', [1])

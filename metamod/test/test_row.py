@@ -10,7 +10,7 @@ def ABRow(SCHEMA):
   schema = SCHEMA
   class ABRow(row.RowBase):
     FIELDS = [('a', int), ('b', int)]
-    # warning: without the rename, this is a function. what's happening? easter egg in the scoping spec?
+    # warning: without the schema rename, this is a function. what's happening? easter egg in the scoping spec?
     SCHEMA = schema
     PKEY = ('a',)
     INDEXES = [
@@ -18,6 +18,15 @@ def ABRow(SCHEMA):
       row.Index(('a','b'), 'gist')
     ]
   return ABRow
+
+@pytest.fixture()
+def ACRow(SCHEMA):
+    schema = SCHEMA
+    class ACRow(row.RowBase):
+        FIELDS = [('a', int), ('c', int)]
+        SCHEMA = schema
+        PKEY = ('a',)
+    return ACRow
 
 def test_field_attrs(ABRow):
   r = ABRow(1,2)

@@ -32,7 +32,7 @@ class ColumnSpec:
                 self.pairs.append(pair)
             else:
                 raise UnkFieldError(rowclass, name)
-        
+
         self.classes = collections.defaultdict(list)
         class_order = collections.OrderedDict()
         for i, pair in enumerate(self.pairs):
@@ -89,6 +89,16 @@ def select_eq(rowclass, where, fields=('*',), for_update=False, limit=None, orde
         stmt += ' for update'
     return stmt, where.values()
 
+def join(rowclasses, where, wildcard=WILDCARD):
+    "generate a simple join for rowclasses that have the same PKEY"
+    assert len(rowclasses) > 1
+    assert all(class_.PKEY == rowclasses[0].PKEY for class_ in rowclasses)
+    stmt = "select %s from %s " % (','.join('%s.*' % class_.__table__() for class_ in rowclasses), rowclasses[0].__table__())
+    stmt += ' '.join('join %s using %s' % (class_.__table__(), '(%s)' % ','.join(class_.PKEY)) for class_ in rowclasses[1:])
+    if where:
+        stmt += whereclause(where, wildcard)
+    return stmt, where.values()
+
 def pkey(rowclass, values):
     "return a where-dict for the rowclass given values"
     if len(rowclass.PKEY) != len(values):
@@ -105,6 +115,21 @@ def select_models(cursor, rowclass, where, **kwargs):
         raise ValueError("don't pass fields into select_models()", kwargs['fields'])
     cursor.execute(*select_eq(rowclass, where, **kwargs))
     return list(itermodels(cursor, rowclass))
+
+def select_joined_models(cursor, rowclasses, where):
+    "returns generator"
+    cursor.execute(*join(rowclasses, where))
+    lengths = [len(class_.FIELDS) for class_ in rowclasses]
+    startfrom = [0]
+    for x in lengths:
+        startfrom.append(x)
+    for row_ in cursor:
+        assert len(row_) == startfrom[-1]
+        # note: startfrom is 1 longer than the other two. zip() ignores
+        yield tuple(
+            class_(*row_[start:start+length])
+            for class_, start, length in zip(rowclasses, startfrom, lengths)
+        )
 
 def get(cursor, rowclass, pkey_vals, **kwargs):
     "get by primary key. return list of models (should have len 0 or 1)"
