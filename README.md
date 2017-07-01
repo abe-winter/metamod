@@ -12,6 +12,8 @@ metamod stands for 'metaclass models'.
 * lightweight ORM (about 200 lines)
 * uses python's `__slots__` so instances are lightweight and classes are self-documenting
 
+Tested on python 2 and 3.
+
 ### vs other ORMs
 
 The goal here is to be a thin layer on SQL. We want to wrap simple, well-understood and often-repeated actions like:

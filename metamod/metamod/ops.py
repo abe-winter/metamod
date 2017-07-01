@@ -1,4 +1,5 @@
 "ops.py -- commands on tables"
+# todo: need coverage of all the functions with execute() calls, i.e. test against DBs
 
 import collections, six
 from . import row
@@ -129,7 +130,7 @@ def select_joined_models(cursor, rowclasses, where):
     lengths = [len(class_.FIELDS) for class_ in rowclasses]
     startfrom = [0]
     for x in lengths:
-        startfrom.append(x)
+        startfrom.append(startfrom[-1]+x)
     for row_ in cursor:
         assert len(row_) == startfrom[-1]
         # note: startfrom is 1 longer than the other two. zip() ignores
