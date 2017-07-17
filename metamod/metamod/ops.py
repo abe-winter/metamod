@@ -124,9 +124,10 @@ def select_models(cursor, rowclass, where, **kwargs):
     cursor.execute(*select_eq(rowclass, where, **kwargs))
     return list(itermodels(cursor, rowclass))
 
-def select_joined_models(cursor, rowclasses, where):
-    "returns generator"
-    cursor.execute(*join(rowclasses, where))
+def select_joined_models(cursor, rowclasses, where, do_query=True):
+    "returns generator. do_query lets you skip the query (like if you wrote your own) and just do the read"
+    if do_query:
+        cursor.execute(*join(rowclasses, where))
     lengths = [len(class_.FIELDS) for class_ in rowclasses]
     startfrom = [0]
     for x in lengths:
